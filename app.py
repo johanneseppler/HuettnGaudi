@@ -13,11 +13,12 @@ st.title("🏔️ Hüttn Gaudi 2026 Fontanella")
 def load_data():
     url_tn = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Teilnehmer"
     url_aus = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Ausgaben"
-    st.write("Rohdaten aus dem Sheet:", df_aus) # Zeigt die nackte Tabelle in der App
     return pd.read_csv(url_tn), pd.read_csv(url_aus)
 
 try:
     df_tn, df_aus = load_data()
+        st.write("Rohdaten aus dem Sheet:", df_aus) # Zeigt die nackte Tabelle in der App
+
     
     # --- BERECHNUNG VORBEREITEN ---
     total_days = df_tn['Tage'].sum()
