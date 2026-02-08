@@ -17,7 +17,7 @@ def load_data():
 
 try:
     df_tn, df_aus = load_data()
-        st.write("Rohdaten aus dem Sheet:", df_aus) # Zeigt die nackte Tabelle in der App
+    st.write("Rohdaten aus dem Sheet:", df_aus) # Zeigt die nackte Tabelle in der App
 
     
     # --- BERECHNUNG VORBEREITEN ---
