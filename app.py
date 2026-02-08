@@ -5,6 +5,13 @@ import plotly.express as px
 # --- KONFIGURATION ---
 SHEET_ID = "1PD-YueUptrwj9z9hWCo8qq7rQjCU_mouFSbd-H4Vt3I"
 
+# PayPal Mapping (Namen müssen exakt wie im Sheet geschrieben sein)
+PAYPAL_MAPPING = {
+    "Johannes B": "epplerjo",
+    "Fiona": "fiona.hahn@googlemail.com",
+    "Filippos C": "filippos.chamoulias@googlemail.com"
+}
+
 st.set_page_config(page_title="Hüttn Gaudi 2026 Fontanella", layout="wide")
 st.title("🏔️ Hüttn Gaudi 2026 Fontanella")
 
@@ -13,6 +20,21 @@ def load_data():
     url_tn = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Teilnehmer"
     url_aus = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Ausgaben"
     return pd.read_csv(url_tn), pd.read_csv(url_aus)
+
+def get_paypal_link(empfaenger_name, betrag):
+    handle = PAYPAL_MAPPING.get(empfaenger_name)
+    if not handle:
+        return None
+    
+    betrag_str = f"{betrag:.2f}"
+    # Betreff für die Zahlung
+    reason = "Huettn Gaudi 2026"
+    
+    if "@" in handle: # E-Mail Adressen (Klassischer Link)
+        return f"https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business={handle}&amount={betrag_str}&currency_code=EUR&item_name={reason.replace(' ', '%20')}"
+    else: # PayPal.me Handles (z.B. @epplerjo)
+        clean_handle = handle.replace("@", "")
+        return f"https://www.paypal.com/paypalme/{clean_handle}/{betrag_str}EUR"
 
 try:
     df_tn, df_aus = load_data()
@@ -24,6 +46,7 @@ try:
     else:
         df_tn['Anzahlung'] = 0.0
 
+    # Sonderregel Anne & Dani (Faktor 0.5)
     def get_factor(name):
         return 0.5 if name in ["Anne", "Dani"] else 1.0
 
@@ -58,12 +81,8 @@ try:
         if typ == 'Tagesabhängig':
             for _, tn in df_tn.iterrows():
                 t_name = tn['Name']
-                if kat == "Unterkunft":
-                    current_weighted_days = weighted_total_days_unterkunft
-                    current_factor = get_factor(t_name)
-                else:
-                    current_weighted_days = normal_total_days
-                    current_factor = 1.0
+                current_weighted_days = weighted_total_days_unterkunft if kat == "Unterkunft" else normal_total_days
+                current_factor = get_factor(t_name) if kat == "Unterkunft" else 1.0
                 
                 anteil = (b / current_weighted_days) * (tn['Tage'] * current_factor)
                 res[t_name]['soll_t'] += anteil
@@ -86,13 +105,14 @@ try:
     
     summary = pd.DataFrame(summary_data)
     
-    # --- TABELLE ---
+    # --- UI: SALDEN ---
     st.subheader("💰 Salden-Tabelle")
     st.dataframe(summary.style.format(precision=2).applymap(lambda x: 'color:red' if x < -0.01 else 'color:green' if x > 0.01 else 'color:gray', subset=['Saldo']), use_container_width=True)
 
-    # --- KACHELN ---
+    # --- UI: ZAHLUNGS-KACHELN ---
     st.divider()
     st.subheader("💳 Zahlungsanweisungen")
+    
     schuldner = summary[summary['Saldo'] < -0.01].copy().to_dict('records')
     glaubiger = summary[summary['Saldo'] > 0.01].copy().to_dict('records')
     schuldner.sort(key=lambda x: x['Saldo'])
@@ -120,42 +140,37 @@ try:
         cols = st.columns(2)
         for i, (name, payments) in enumerate(grouped_payments.items()):
             with cols[i % 2]:
-                payment_details = "".join([f"<li style='margin-bottom:5px;'><b>{amt:.2f} €</b> an {empf}</li>" for empf, amt in payments])
-                total_to_pay = sum(amt for _, amt in payments)
                 st.markdown(f"""
                 <div style="background-color: #e1f5fe; padding: 20px; border-radius: 12px; border-left: 6px solid #0288d1; margin-bottom: 20px;">
                     <h3 style="margin: 0 0 10px 0; color: #01579b;">{name}</h3>
-                    <p style="margin: 0 0 10px 0; font-weight: bold; color: #0288d1;">Gesamtschuld: {total_to_pay:.2f} €</p>
-                    <ul style="margin: 0; padding-left: 20px; color: #333;">{payment_details}</ul>
-                </div>
+                    <p style="margin: 0 0 10px 0; font-weight: bold; color: #0288d1;">Gesamtschuld: {sum(amt for _, amt in payments):.2f} €</p>
                 """, unsafe_allow_html=True)
+                
+                for empf, amt in payments:
+                    pp_link = get_paypal_link(empf, amt)
+                    st.write(f"👉 **{amt:.2f} €** an **{empf}**")
+                    if pp_link:
+                        st.link_button(f"💸 Jetzt {amt:.2f}€ an {empf} senden", pp_link)
+                    else:
+                        st.caption(f"(Kein PayPal für {empf} hinterlegt)")
+                
+                st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- PERSÖNLICHE AUSWERTUNG (DETAILS) ---
+    # --- UI: DETAILS ---
     st.divider()
     st.subheader("📊 Persönliche Auswertung")
-    user = st.selectbox("Wähle einen Namen für Details:", summary['Name'].tolist())
+    user = st.selectbox("Wähle einen Namen:", summary['Name'].tolist())
     u_row = summary[summary['Name'] == user].iloc[0]
     u_data = res[user]
     
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns(2)
     with col1:
-        st.metric(f"Saldo für {user}", f"{u_row['Saldo']:.2f} €")
-        st.write(f"**Eigene Bons (Supermarkt etc.):** {u_row['Bons']:.2f} €")
-        if user != "Filippos C":
-            st.write(f"**Bereits an Filippos überwiesen:** {u_row['Anzahlung']:.2f} €")
-        st.write(f"**Dein berechneter Kosten-Anteil:** {u_row['Anteil']:.2f} €")
-        st.caption(f"(Tages-Anteil: {u_data['soll_t']:.2f} € | Fix-Anteil: {u_data['soll_f']:.2f} €)")
-
+        st.metric(f"Saldo {user}", f"{u_row['Saldo']:.2f} €")
+        st.write(f"Bons: {u_row['Bons']:.2f} € | Anzahlung: {u_row['Anzahlung']:.2f} €")
+        st.write(f"Anteil Kosten: {u_row['Anteil']:.2f} €")
     with col2:
         if u_data['kat']:
-            fig = px.pie(values=list(u_data['kat'].values()), names=list(u_data['kat'].keys()), 
-                         hole=0.4, title=f"Wofür {user} anteilig zahlt",
-                         color_discrete_sequence=px.colors.qualitative.Pastel)
-            st.plotly_chart(fig, use_container_width=True)
-
-    with st.expander("🔍 Rohdaten zur Kontrolle"):
-        st.write("Ausgaben:", df_aus)
-        st.write("Teilnehmer:", df_tn)
+            st.plotly_chart(px.pie(values=list(u_data['kat'].values()), names=list(u_data['kat'].keys()), hole=0.4), use_container_width=True)
 
 except Exception as e:
-    st.error(f"Fehler: {e}")
+    st.error(f"Kritischer Fehler: {e}")
