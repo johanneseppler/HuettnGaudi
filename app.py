@@ -105,7 +105,7 @@ try:
     summary = pd.DataFrame(summary_data)
 
     # --- TABELLE ---
-    st.subheader("💰 Salden-Übersicht")
+    st.subheader("💰 Übersicht")
     st.dataframe(
         summary[["Name", "Auslagen", "Anzahlung", "Anteil", "Saldo"]].set_index("Name").style.format(precision=2).applymap(lambda x: 'color:red' if x < -0.01 else 'color:green' if x > 0.01 else 'color:gray', subset=['Saldo']), 
         use_container_width=True,
