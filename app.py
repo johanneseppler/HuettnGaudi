@@ -9,8 +9,8 @@ SHEET_ID = "1PD-YueUptrwj9z9hWCo8qq7rQjCU_mouFSbd-H4Vt3I"
 # Trage hier die PayPal.me Namen ein, sobald du sie hast.
 PAYPAL_MAPPING = {
     "Johannes B": "epplerjo",
-    "Fiona": "chamoumlk",           # Hier später z.B. "fionah123"
-    "Filippos C": ""       # Hier später z.B. "fil_cham"
+    "Fiona": "",           # Hier später z.B. "fionah123"
+    "Filippos C": "chamoumlk"       # Hier später z.B. "fil_cham"
 }
 
 st.set_page_config(page_title="Hüttn Gaudi 2026 Fontanella", layout="wide")
