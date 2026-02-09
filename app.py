@@ -150,7 +150,7 @@ try:
                         # Neuer Button-Text mit Empfängername
                         c2.link_button(f"💸 PayPal an {empf}", pp_url, use_container_width=True)
                     else:
-                        c2.caption(f"Kein PayPal für {empf}")
+                        c2.caption(f"Kein PayPal von {empf} hinterlegt")
 
     # --- UI: Details ---
     st.divider()
