@@ -9,7 +9,7 @@ SHEET_ID = "1PD-YueUptrwj9z9hWCo8qq7rQjCU_mouFSbd-H4Vt3I"
 # Trage hier die PayPal.me Namen ein, sobald du sie hast.
 PAYPAL_MAPPING = {
     "Johannes B": "epplerjo",
-    "Fiona": "",           # Hier später z.B. "fionah123"
+    "Fiona": "chamoumlk",           # Hier später z.B. "fionah123"
     "Filippos C": ""       # Hier später z.B. "fil_cham"
 }
 
